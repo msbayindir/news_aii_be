@@ -92,7 +92,7 @@ Kategoriler: ${article.categories.map(c => c.name).join(', ')}
 
       const prompt = `
 Web'de arama yap: "${query}"
-Sadece son ${maxDaysOld} gün içindeki Türkçe haber ve içerikleri getir.
+Sadece son ${maxDaysOld} gün içindeki Türkçe haber ve içerikleri getir Ayrıca sadece gaziantep ile alakalı olan haberleri getireceksin.
 Her sonuç için şu bilgileri JSON formatında ver:
 - title: Başlık
 - snippet: Kısa özet (max 200 karakter)

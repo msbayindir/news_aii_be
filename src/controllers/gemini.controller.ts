@@ -64,7 +64,7 @@ export class GeminiController {
       }
 
       // Gaziantep/Şehitkamil odaklı arama
-      const enhancedQuery = `${query} Gaziantep Şehitkamil`;
+      const enhancedQuery = `${query}`;
       const results = await geminiService.searchWeb(enhancedQuery, maxDaysOld);
 
       return res.json({
