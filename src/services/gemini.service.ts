@@ -123,14 +123,56 @@ Kategoriler: ${article.categories.map(c => c.name).join(', ')}
     try {
       console.log('Starting web search with query:', query);
 
-      // Resmi dokümantasyondaki TAMAMEN AYNI format
+      // Daha kapsamlı ve detaylı prompt oluştur
+      const enhancedPrompt = `
+"${query}" konusunda çok kapsamlı, detaylı ve uzun bir araştırma raporu hazırla. Bu rapor en az 1000-1500 kelime olmalı ve aşağıdaki yapıda olmalı:
+
+## ARAŞTIRMA KRİTERLERİ:
+1. SON DAKIKA HABERLERİ: En güncel gelişmeleri öncelikle araştır ve detaylandır
+2. DETAYLI ANALİZ: Sadece başlıkları değil, haberlerin tam içeriğini, detaylarını ve analizini yap
+3. KAYNAK ÇEŞİTLİLİĞİ: En az 5-10 farklı haber kaynağından bilgi topla
+4. BAĞLAM BİLGİSİ: Olayların arka planını, tarihçesini ve önceki gelişmeleri dahil et
+5. UZUN FORM İÇERİK: Her konu başlığı altında en az 200-300 kelimelik detaylı açıklama
+
+## KAPSAM:
+- Gaziantep
+- Siyasi gelişmeler ve açıklamalar (detaylı)
+- Ekonomik haberler ve iş dünyası gelişmeleri
+- Sosyal ve kültürel etkinlikler
+- Spor haberleri (transfer, maç sonuçları, kulüp haberleri)
+- Güvenlik, asayiş ve adalet haberleri
+- Eğitim, sağlık ve belediye hizmetleri
+- Tarım, sanayi ve ticaret haberleri
+- Kaza, yangın ve acil durum haberleri
+
+## RAPOR YAPISI:
+1. **Ana Haberler** (her haber için 250-300 kelime)
+
+
+## ÖNEMLİ:
+- Her bilgi parçası için kaynak belirt
+- Tarih ve saat bilgilerini dahil et
+- Sayısal veriler varsa belirt
+- Kişi isimleri ve kurumları tam olarak yaz
+- Mümkün olduğunca çok detay ver
+- Paragraflar arası geçişleri sağla
+
+Arama konusu: "${query}"
+
+Lütfen bu kriterlere göre çok detaylı, kapsamlı ve uzun bir rapor hazırla.`;
+
+      // Resmi dokümantasyondaki format ile gelişmiş prompt
       const response = await this.model.generateContent({
         contents: [{
-          parts: [{ text: query }]
+          parts: [{ text: enhancedPrompt }]
         }],
         tools: [{
           googleSearch: {} // google_search değil, googleSearch (camelCase)
-        }]
+        }],
+        generationConfig: {
+          maxOutputTokens: 8192, // Daha uzun response için token limiti artır
+          temperature: 0.5, // Yaratıcılık için biraz temperature ekle
+        }
       });
 
       console.log('Response received, checking structure...');
