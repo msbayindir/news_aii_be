@@ -4,12 +4,46 @@ import { logService } from './log.service';
 import { GeminiSearchResult } from '../types';
 import prisma from '../config/database.config';
 
+// Grounding metadata interface'leri (resmi dokümantasyona göre)
+interface GroundingChunk {
+  web?: {
+    uri: string;
+    title: string;
+  };
+}
+
+interface GroundingSupport {
+  segment?: {
+    startIndex: number;
+    endIndex: number;
+    text: string;
+  };
+  groundingChunkIndices?: number[];
+}
+
+interface GroundingMetadata {
+  webSearchQueries?: string[];
+  groundingChunks?: GroundingChunk[];
+  groundingSupports?: GroundingSupport[];
+  searchEntryPoint?: {
+    renderedContent: string;
+  };
+}
+
+interface SearchResult {
+  text: string;
+  sources: GroundingChunk[];
+  searchQueries: string[];
+  textWithCitations?: string;
+}
+
 class GeminiService {
   private genAI: GoogleGenerativeAI;
   private model: any;
 
   constructor() {
     this.genAI = new GoogleGenerativeAI(config.geminiApiKey);
+    // Resmi dokümantasyona göre desteklenen modeller
     this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
   }
 
@@ -51,8 +85,8 @@ Kategoriler: ${article.categories.map(c => c.name).join(', ')}
       }).join('\n');
 
       const prompt = customPrompt || 
-        `Aşağıdaki haberleri Türkçe olarak özetle. Ana temaları, önemli olayları ve trendleri vurgula. 
-        Özet net, anlaşılır ve bilgilendirici olmalı:`;
+        `Aşağıdaki haberleri Türkçe olarak özetle. Ana temaları, önemli olayları ve trendleri vurgula.
+         Özet net, anlaşılır ve bilgilendirici olmalı:`;
 
       const fullPrompt = `${prompt}\n\n${articlesText}`;
 
@@ -82,78 +116,129 @@ Kategoriler: ${article.categories.map(c => c.name).join(', ')}
   }
 
   /**
-   * Search web using Gemini with grounding
+   * Search web using Gemini with Google Search Grounding
+   * Resmi dokümantasyondaki format kullanılıyor
    */
-  async searchWeb(query: string, maxDaysOld: number = 2): Promise<GeminiSearchResult[]> {
+  async searchWeb(query: string, maxDaysOld: number = 7): Promise<SearchResult> {
     try {
-      // Calculate date filter
-      const dateFilter = new Date();
-      dateFilter.setDate(dateFilter.getDate() - maxDaysOld);
+      console.log('Starting web search with query:', query);
 
-      const prompt = `
-Web'de arama yap: "${query}"
-Sadece son ${maxDaysOld} gün içindeki Türkçe haber ve içerikleri getir Ayrıca sadece gaziantep ile alakalı olan haberleri getireceksin.
-Her sonuç için şu bilgileri JSON formatında ver:
-- title: Başlık
-- snippet: Kısa özet (max 200 karakter)
-- link: URL
-- displayLink: Site adı
-- imageUrl: Varsa resim URL'i
-- publishedDate: Yayın tarihi (ISO format)
-
-Sonuçları JSON array olarak döndür. Sadece JSON döndür, başka açıklama ekleme.
-`;
-
-      const result = await this.model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-        },
-        safetySettings: [
-          {
-            category: 'HARM_CATEGORY_HARASSMENT',
-            threshold: 'BLOCK_NONE',
-          },
-          {
-            category: 'HARM_CATEGORY_HATE_SPEECH',
-            threshold: 'BLOCK_NONE',
-          },
-        ],
+      // Resmi dokümantasyondaki TAMAMEN AYNI format
+      const response = await this.model.generateContent({
+        contents: [{
+          parts: [{ text: query }]
+        }],
+        tools: [{
+          googleSearch: {} // google_search değil, googleSearch (camelCase)
+        }]
       });
 
-      const response = await result.response;
-      const text = response.text();
+      console.log('Response received, checking structure...');
 
-      // Parse JSON response
-      let searchResults: GeminiSearchResult[] = [];
-      try {
-        // Extract JSON from response
-        const jsonMatch = text.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          searchResults = JSON.parse(jsonMatch[0]);
-        }
-      } catch (parseError) {
-        await logService.error('Failed to parse Gemini search results', { parseError, text });
-        return [];
+      // Response yapısını kontrol et
+      if (!response) {
+        throw new Error('No response received from API');
       }
 
-      // Save search history
-      await prisma.searchHistory.create({
-        data: {
-          query,
-          results: JSON.stringify(searchResults),
-          resultCount: searchResults.length,
-        },
+      // Log'dan görülen yapıya göre: response.response.candidates[0].content.parts[0].text
+      let responseText = '';
+      
+      if (response.response?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        responseText = response.response.candidates[0].content.parts[0].text;
+        console.log('✅ Text extracted successfully, length:', responseText.length);
+      } else {
+        console.log('❌ Failed to extract text, checking structure...');
+        console.log('response.response exists:', !!response.response);
+        console.log('candidates exists:', !!response.response?.candidates);
+        console.log('candidates length:', response.response?.candidates?.length || 0);
+        throw new Error('Could not extract text from response');
+      }
+
+      // Grounding metadata'yı al - log'dan görülen yapıya göre
+      let groundingMetadata: GroundingMetadata = {};
+      
+      if (response.response?.candidates?.[0]?.groundingMetadata) {
+        groundingMetadata = response.response.candidates[0].groundingMetadata;
+        console.log('✅ Found grounding metadata with', 
+          groundingMetadata.groundingChunks?.length || 0, 'chunks');
+      } else {
+        console.log('⚠️ No grounding metadata found');
+      }
+
+      // Sonuç objesi oluştur
+      const result: SearchResult = {
+        text: responseText,
+        sources: groundingMetadata.groundingChunks || [],
+        searchQueries: groundingMetadata.webSearchQueries || []
+      };
+
+      // Citation'ları ekle
+      if (groundingMetadata.groundingSupports && groundingMetadata.groundingChunks) {
+        result.textWithCitations = this.addCitations(responseText, groundingMetadata);
+      } else {
+        result.textWithCitations = responseText;
+      }
+
+      await logService.info('Web search completed successfully', { 
+        query, 
+        sourcesFound: result.sources.length,
+        queriesUsed: result.searchQueries.length,
+        hasGrounding: !!groundingMetadata.groundingChunks?.length
       });
 
-      await logService.info(`Web search completed: ${query} - ${searchResults.length} results`);
-      return searchResults;
+      return result;
+
     } catch (error) {
-      await logService.error('Failed to perform web search', { error });
+      console.error('Search failed with error:', error);
+      await logService.error('Failed to perform web search', { 
+        error: error,
+        query,
+        maxDaysOld,
+        stack: error
+      });
       throw error;
     }
+  }
+
+  /**
+   * Add citations to text based on grounding metadata
+   * Resmi dokümantasyondaki JavaScript fonksiyonun aynısı
+   */
+  private addCitations(responseText: string, groundingMetadata: GroundingMetadata): string {
+    let text = responseText;
+    const supports = groundingMetadata.groundingSupports;
+    const chunks = groundingMetadata.groundingChunks;
+
+    if (!supports || !chunks) return text;
+
+    // Sort supports by end_index in descending order to avoid shifting issues when inserting.
+    const sortedSupports = [...supports].sort(
+      (a, b) => (b.segment?.endIndex ?? 0) - (a.segment?.endIndex ?? 0),
+    );
+
+    for (const support of sortedSupports) {
+      const endIndex = support.segment?.endIndex;
+      if (endIndex === undefined || !support.groundingChunkIndices?.length) {
+        continue;
+      }
+
+      const citationLinks = support.groundingChunkIndices
+        .map(i => {
+          const uri = chunks[i]?.web?.uri;
+          if (uri) {
+            return `[${i + 1}](${uri})`;
+          }
+          return null;
+        })
+        .filter(Boolean);
+
+      if (citationLinks.length > 0) {
+        const citationString = citationLinks.join(", ");
+        text = text.slice(0, endIndex) + citationString + text.slice(endIndex);
+      }
+    }
+
+    return text;
   }
 
   /**
@@ -166,6 +251,105 @@ Sonuçları JSON array olarak döndür. Sadece JSON döndür, başka açıklama 
       return response.text();
     } catch (error) {
       await logService.error('Failed to generate content', { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Search web and return formatted news results
+   */
+  async searchNews(query: string, maxResults: number = 5): Promise<GeminiSearchResult[]> {
+    try {
+      const searchResult = await this.searchWeb(`${query} son haberler güncel`);
+      
+      // Eğer sources varsa, onları format et
+      const newsResults: any[] = searchResult.sources
+        .slice(0, maxResults)
+        .map((source, index) => ({
+          title: source.web?.title || `Haber ${index + 1}`,
+          url: source.web?.uri || '',
+          snippet: searchResult.text.substring(0, 200) + '...',
+          source: source.web?.title || 'Bilinmeyen Kaynak',
+          publishedDate: new Date() // Gerçek tarih API'den gelmiyor, placeholder
+        }));
+
+      return newsResults;
+    } catch (error) {
+      await logService.error('Failed to search news', { error, query });
+      throw error;
+    }
+  }
+
+  /**
+   * Quick debug test to see exact response structure
+   */
+  async debugResponseStructure(query: string): Promise<any> {
+    try {
+      const response = await this.model.generateContent({
+        contents: [{ parts: [{ text: query }] }],
+        tools: [{ googleSearch: {} }]
+      });
+
+      console.log('=== COMPLETE RESPONSE ANALYSIS ===');
+      console.log('typeof response:', typeof response);
+      console.log('response keys:', Object.keys(response || {}));
+      console.log('response.text exists:', 'text' in response);
+      console.log('response.text type:', typeof response.text);
+      console.log('response.text value:', response.text);
+      console.log('response.response exists:', 'response' in response);
+      
+      if (response.response) {
+        console.log('response.response keys:', Object.keys(response.response));
+        console.log('response.response.candidates exists:', 'candidates' in response.response);
+        
+        if (response.response.candidates && response.response.candidates[0]) {
+          const candidate = response.response.candidates[0];
+          console.log('candidate keys:', Object.keys(candidate));
+          console.log('candidate.content exists:', 'content' in candidate);
+          
+          if (candidate.content && candidate.content.parts && candidate.content.parts[0]) {
+            console.log('candidate.content.parts[0].text:', candidate.content.parts[0].text?.substring(0, 100));
+          }
+        }
+      }
+
+      return response;
+    } catch (error) {
+      console.error('Debug test failed:', error);
+      throw error;
+    }
+  }
+  async testSimpleSearch(query: string): Promise<string> {
+    try {
+      console.log('Testing simple search without grounding...');
+      
+      const response = await this.model.generateContent({
+        contents: [{
+          parts: [{ text: `"${query}" hakkında kısa bilgi ver` }]
+        }]
+      });
+
+      console.log('Simple search response structure:', {
+        hasResponse: !!response.response,
+        responseKeys: Object.keys(response.response || {}),
+        hasCandidates: !!response.response?.candidates,
+        candidatesLength: response.response?.candidates?.length || 0
+      });
+
+      let text = '';
+      
+      // Log'dan gelen yapıya göre: response.response.candidates[0].content.parts[0].text
+      if (response.response?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        text = response.response.candidates[0].content.parts[0].text;
+        console.log('✅ Simple search successful');
+      } else {
+        console.log('❌ Simple search failed to extract text');
+      }
+
+      return text;
+      
+    } catch (error) {
+      console.error('Simple search failed:', error);
       throw error;
     }
   }

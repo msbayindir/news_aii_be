@@ -54,8 +54,8 @@ export class GeminiController {
    */
   async searchWeb(req: Request, res: Response, _next?: NextFunction) {
     try {
-      const { query, maxDaysOld = 7 } = req.body;
-
+      const { query } = req.body;
+      
       if (!query) {
         return res.status(400).json({
           success: false,
@@ -63,23 +63,25 @@ export class GeminiController {
         });
       }
 
-      // Gaziantep/Şehitkamil odaklı arama
-      const enhancedQuery = `${query}`;
-      const results = await geminiService.searchWeb(enhancedQuery, maxDaysOld);
-
-      return res.json({
-        success: true,
+      console.log('Starting web search with query:', query);
+      const result = await geminiService.searchWeb(query);
+      
+      res.json({ 
+        success: true, 
         data: {
-          query,
-          results,
-          count: results.length,
-        },
+          text: result.text,
+          sources: result.sources,
+          searchQueries: result.searchQueries,
+          sourcesCount: result.sources.length
+        }
       });
+      
     } catch (error) {
-      await logService.error('Failed to search web', { error });
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to search web',
+      console.error('Controller error:', error);
+      await logService.error('Failed to search web', { error, query: req.body.query });
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to search web' 
       });
     }
   }
@@ -128,6 +130,7 @@ export class GeminiController {
       });
     }
   }
+  
 
   /**
    * Get search history
