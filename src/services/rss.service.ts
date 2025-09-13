@@ -2,6 +2,7 @@ import Parser from 'rss-parser';
 import prisma from '../config/database.config';
 import { RSSFeedItem, ParsedArticle } from '../types';
 import { logService } from './log.service';
+import { categoryService } from './category.service';
 
 class RSSService {
   private parser: Parser;
@@ -117,11 +118,13 @@ class RSSService {
                 pubDate: article.pubDate,
                 guid: article.guid,
                 sourceId,
-                categories: article.categories ? {
-                  connectOrCreate: article.categories.map(cat => ({
-                    where: { name: cat },
-                    create: { name: cat },
-                  })),
+                categories: article.categories && article.categories.length > 0 ? {
+                  connect: await Promise.all(
+                    article.categories.map(async (cat) => {
+                      const category = await categoryService.getOrCreateCategory(cat);
+                      return { id: category.id };
+                    })
+                  ),
                 } : undefined,
               },
             });
