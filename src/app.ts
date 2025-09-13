@@ -17,7 +17,12 @@ const app = express();
 validateEnv();
 
 // Middlewares
-app.use(cors());
+app.use(cors({
+  origin: '*', // Allow all origins for testing
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning']
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
