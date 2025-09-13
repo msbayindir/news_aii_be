@@ -13,6 +13,8 @@ class RSSService {
           ['media:content', 'mediaContent', { keepArray: true }],
           ['media:thumbnail', 'mediaThumbnail'],
           ['enclosure', 'enclosure'],
+          ['content:encoded', 'contentEncoded'],
+          ['description', 'description'],
         ],
       },
     });
@@ -49,19 +51,39 @@ class RSSService {
   }
 
   /**
+   * Strip HTML tags from content
+   */
+  private stripHtml(html: string): string {
+    if (!html) return '';
+    // Remove HTML tags but keep the text content
+    return html
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  /**
    * Convert RSS item to ParsedArticle
    */
-  private parseArticle(item: RSSFeedItem): ParsedArticle {
+  private parseArticle(item: any): ParsedArticle {
+    // Get full content from content:encoded or fallback to content/description
+    const fullContent = item.contentEncoded || item['content:encoded'] || item.content || item.description || '';
+    
+    // Get description - prefer plain description, otherwise strip HTML from content
+    const description = item.description 
+      ? this.stripHtml(item.description) 
+      : this.stripHtml(fullContent).substring(0, 500);
+
     return {
       title: item.title || '',
-      description: item.contentSnippet || item.content?.substring(0, 500),
-      content: item.content || item.contentSnippet,
+      description: description,
+      content: fullContent, // Store full HTML content
       link: item.link || '',
       imageUrl: this.extractImageUrl(item),
-      author: item.creator,
-      pubDate: item.isoDate ? new Date(item.isoDate) : undefined,
-      guid: item.guid,
-      categories: item.categories,
+      author: item.creator || item['dc:creator'],
+      pubDate: item.isoDate ? new Date(item.isoDate) : (item.pubDate ? new Date(item.pubDate) : undefined),
+      guid: item.guid || item.link,
+      categories: item.categories || (item.category ? [item.category] : []),
     };
   }
 
