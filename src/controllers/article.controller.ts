@@ -4,25 +4,32 @@ import { logService } from '../services/log.service';
 
 export class ArticleController {
   /**
-   * Get articles with filters
+   * Get articles with pagination and filters
    */
   async getArticles(req: Request, res: Response) {
     try {
-      const {
-        page = '1',
-        limit = '20',
-        sourceId,
+      const { 
+        page = 1, 
+        limit = 20, 
+        sourceId, 
         categoryId,
-        startDate,
-        endDate,
+        categoryNames,
         search,
+        startDate,
+        endDate 
       } = req.query;
+
+      // Parse category names if provided
+      const categoryNamesArray = categoryNames 
+        ? (categoryNames as string).split(',').map(name => name.trim())
+        : undefined;
 
       const result = await articleService.getArticles({
         page: parseInt(page as string),
         limit: parseInt(limit as string),
         sourceId: sourceId as string,
         categoryId: categoryId as string,
+        categoryNames: categoryNamesArray,
         startDate: startDate ? new Date(startDate as string) : undefined,
         endDate: endDate ? new Date(endDate as string) : undefined,
         search: search as string,

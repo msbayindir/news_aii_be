@@ -186,6 +186,57 @@ export class FeedController {
       });
     }
   }
+
+  /**
+   * Fetch all feeds and save new articles
+   */
+  async fetchAllFeeds(req: Request, res: Response) {
+    try {
+      const sources = await prisma.feedSource.findMany({
+        where: { isActive: true },
+      });
+
+      let totalNewArticles = 0;
+      const results = [];
+
+      for (const source of sources) {
+        try {
+          const count = await rssService.fetchAndSaveArticles(source.id, source.url);
+          totalNewArticles += count;
+          results.push({
+            sourceId: source.id,
+            sourceName: source.name,
+            newArticles: count,
+            status: 'success',
+          });
+        } catch (error) {
+          results.push({
+            sourceId: source.id,
+            sourceName: source.name,
+            newArticles: 0,
+            status: 'failed',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        message: `Fetched ${totalNewArticles} new articles from ${sources.length} sources`,
+        data: {
+          totalNewArticles,
+          totalSources: sources.length,
+          results,
+        },
+      });
+    } catch (error) {
+      await logService.error('Failed to fetch all feeds', { error });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch feeds',
+      });
+    }
+  }
 }
 
 export const feedController = new FeedController();

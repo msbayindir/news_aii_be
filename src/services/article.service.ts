@@ -10,15 +10,17 @@ class ArticleService {
     limit?: number;
     sourceId?: string;
     categoryId?: string;
+    categoryNames?: string[];
     startDate?: Date;
     endDate?: Date;
     search?: string;
-  }) {
+  } = {}) {
     const {
       page = 1,
       limit = 20,
       sourceId,
       categoryId,
+      categoryNames,
       startDate,
       endDate,
       search,
@@ -32,6 +34,15 @@ class ArticleService {
     if (categoryId) {
       where.categories = {
         some: { id: categoryId },
+      };
+    }
+    if (categoryNames && categoryNames.length > 0) {
+      where.categories = {
+        some: {
+          name: {
+            in: categoryNames,
+          },
+        },
       };
     }
     if (startDate || endDate) {

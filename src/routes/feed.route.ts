@@ -21,4 +21,7 @@ router.delete('/:id', feedController.deleteFeedSource);
 // Check single feed
 router.post('/:id/check', feedController.checkSingleFeed);
 
+// Fetch all feeds and save new articles
+router.post('/fetch-all', feedController.fetchAllFeeds);
+
 export default router;

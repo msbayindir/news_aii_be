@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { geminiService } from '../services/gemini.service';
 import { logService } from '../services/log.service';
 import prisma from '../config/database.config';
@@ -30,7 +30,7 @@ export class GeminiController {
 
       const summary = await geminiService.summarizeArticles(start, end, prompt);
 
-      res.json({
+      return res.json({
         success: true,
         data: {
           summary,
@@ -42,7 +42,7 @@ export class GeminiController {
       });
     } catch (error) {
       await logService.error('Failed to summarize articles', { error });
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: 'Failed to summarize articles',
       });
@@ -52,20 +52,22 @@ export class GeminiController {
   /**
    * Search web using Gemini
    */
-  async searchWeb(req: Request, res: Response) {
+  async searchWeb(req: Request, res: Response, _next?: NextFunction) {
     try {
-      const { query, maxDaysOld = 2 } = req.body;
+      const { query, maxDaysOld = 7 } = req.body;
 
       if (!query) {
         return res.status(400).json({
           success: false,
-          error: 'Search query is required',
+          message: 'Query is required',
         });
       }
 
-      const results = await geminiService.searchWeb(query, maxDaysOld);
+      // Gaziantep/Şehitkamil odaklı arama
+      const enhancedQuery = `${query} Gaziantep Şehitkamil`;
+      const results = await geminiService.searchWeb(enhancedQuery, maxDaysOld);
 
-      res.json({
+      return res.json({
         success: true,
         data: {
           query,
@@ -75,7 +77,7 @@ export class GeminiController {
       });
     } catch (error) {
       await logService.error('Failed to search web', { error });
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: 'Failed to search web',
       });
