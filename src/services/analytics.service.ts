@@ -9,9 +9,9 @@ interface WordCount {
 
 class AnalyticsService {
   /**
-   * Analyze word frequency from articles
+   * Analyze word frequency from articles using Gemini AI
    */
-  async analyzeWordFrequency(limit: number = 10): Promise<void> {
+  async analyzeWordFrequency(limit: number = 50): Promise<void> {
     try {
       // Get latest articles
       const articles = await prisma.article.findMany({
@@ -29,50 +29,88 @@ class AnalyticsService {
         return;
       }
 
-      // Combine all text
-      const allText = articles
-        .map(a => `${a.title} ${a.content || ''}`)
-        .join(' ')
-        .toLowerCase();
+      // Prepare article content for Gemini
+      const articleTexts = articles
+        .map(a => `${a.title}\n${a.content || ''}`)
+        .join('\n\n---\n\n');
 
-      // Turkish stop words
-      const stopWords = new Set([
-        've', 'ile', 'de', 'da', 'bu', 'bir', 'için', 'olan', 'olarak',
-        'daha', 'çok', 'en', 'gibi', 'kadar', 'sonra', 'önce', 'her',
-        'bazı', 'tüm', 'ki', 'ne', 'ya', 'veya', 'ama', 'ancak', 'fakat',
-        'yani', 'eğer', 'değil', 'mi', 'mu', 'mı', 'mü', 'var', 'yok',
-        'den', 'dan', 'ten', 'tan', 'e', 'a', 'ye', 'ya', 'i', 'ı', 'u',
-        'ü', 'o', 'ö', 'nin', 'nın', 'nun', 'nün', 'in', 'ın', 'un', 'ün'
-      ]);
+      // Create prompt for Gemini to analyze word frequency
+      const prompt = `
+        Aşağıdaki Türkçe haber metinlerini analiz ederek en önemli ve anlamlı kelimelerin frekans analizini yap.
 
-      // Count words
-      const wordCounts = new Map<string, number>();
-      const words = allText.match(/[a-züğıöşç]+/gi) || [];
+        KURALLAR:
+        1. Sadece Türkçe kelimeler
+        2. En az 3 karakter uzunluğunda
+        3. Anlamlı kelimeler (isim, sıfat, fiil kökleri)
+        4. Stop words hariç (ve, ile, bu, bir, için, olan, vs.)
+        5. Teknik terimler hariç (HTML, CSS, JavaScript, vs.)
+        6. Kişi isimleri ve yer isimleri dahil edilebilir
+        7. Haber içeriğini yansıtan önemli kelimeler
 
-      for (const word of words) {
-        if (word.length > 2 && !stopWords.has(word)) {
-          wordCounts.set(word, (wordCounts.get(word) || 0) + 1);
+        ÇIKTI FORMATI:
+        Sadece JSON formatında döndür, başka hiçbir metin ekleme:
+        {
+          "words": [
+            {"word": "kelime1", "count": 15},
+            {"word": "kelime2", "count": 12},
+            ...
+          ]
         }
+
+        En fazla 30 kelime döndür, frekansa göre sıralı.
+
+        HABER METİNLERİ:
+        ${articleTexts}
+      `;
+
+      // Get analysis from Gemini
+      const geminiResponse = await geminiService.generateContent(prompt);
+      
+      // Parse Gemini response
+      let wordAnalysis;
+      try {
+        // Clean the response to extract JSON
+        const cleanResponse = geminiResponse
+          .replace(/```json\n?/g, '')
+          .replace(/```\n?/g, '')
+          .trim();
+        
+        wordAnalysis = JSON.parse(cleanResponse);
+      } catch (parseError) {
+        await logService.error('Failed to parse Gemini word analysis response', { 
+          error: parseError, 
+          response: geminiResponse 
+        });
+        throw new Error('Invalid response format from Gemini');
       }
 
-      // Sort by frequency and take top 50
-      const sortedWords: WordCount[] = Array.from(wordCounts.entries())
-        .map(([word, count]) => ({ word, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 50);
-  
+      if (!wordAnalysis.words || !Array.isArray(wordAnalysis.words)) {
+        throw new Error('Invalid word analysis format from Gemini');
+      }
+
+      // Validate and clean the words
+      const validWords = wordAnalysis.words
+        .filter((item: any) => 
+          item.word && 
+          typeof item.word === 'string' && 
+          item.count && 
+          typeof item.count === 'number' &&
+          item.word.length >= 3
+        )
+        .slice(0, 30); // Limit to 30 words
+
       // Save to database
       await prisma.wordFrequency.create({
         data: {
-          words: sortedWords as any,
+          words: validWords as any,
           articleIds: articles.map(a => a.id) as any,
           articleCount: articles.length,
         },
       });
 
-      await logService.info(`Word frequency analysis completed for ${articles.length} articles`);
+      await logService.info(`Gemini word frequency analysis completed for ${articles.length} articles, found ${validWords.length} words`);
     } catch (error) {
-      await logService.error('Word frequency analysis failed', { error });
+      await logService.error('Gemini word frequency analysis failed', { error });
       throw error;
     }
   }
