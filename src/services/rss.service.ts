@@ -16,6 +16,8 @@ class RSSService {
           ['enclosure', 'enclosure'],
           ['content:encoded', 'contentEncoded'],
           ['description', 'description'],
+          ['guid', 'guid'],
+          ['atom:link', 'atomLink'],
         ],
       },
     });
@@ -52,12 +54,16 @@ class RSSService {
   }
 
   /**
-   * Strip HTML tags from content
+   * Strip HTML tags from content and handle CDATA
    */
   private stripHtml(html: string): string {
     if (!html) return '';
+    
+    // Handle CDATA sections
+    let cleanHtml = html.replace(/<!\[CDATA\[(.*?)\]\]>/gs, '$1');
+    
     // Remove HTML tags but keep the text content
-    return html
+    return cleanHtml
       .replace(/<[^>]*>/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
@@ -75,15 +81,32 @@ class RSSService {
       ? this.stripHtml(item.description) 
       : this.stripHtml(fullContent).substring(0, 500);
 
+    // Handle different guid formats (Milliyet uses guid with isPermaLink attribute)
+    let guid = item.guid;
+    if (typeof guid === 'object' && guid._) {
+      guid = guid._; // Extract text content from guid object
+    }
+    guid = guid || item.link;
+
+    // Handle atom:link for alternative link format
+    let link = item.link;
+    if (!link && item.atomLink) {
+      if (typeof item.atomLink === 'object' && item.atomLink.href) {
+        link = item.atomLink.href;
+      } else if (typeof item.atomLink === 'string') {
+        link = item.atomLink;
+      }
+    }
+
     return {
-      title: item.title || '',
+      title: this.stripHtml(item.title || ''), // Strip CDATA from title
       description: description,
       content: fullContent, // Store full HTML content
-      link: item.link || '',
+      link: link || '',
       imageUrl: this.extractImageUrl(item),
       author: item.creator || item['dc:creator'],
       pubDate: item.isoDate ? new Date(item.isoDate) : (item.pubDate ? new Date(item.pubDate) : undefined),
-      guid: item.guid || item.link,
+      guid: guid,
       categories: item.categories || (item.category ? [item.category] : []),
     };
   }

@@ -24,4 +24,7 @@ router.post('/:id/check', feedController.checkSingleFeed);
 // Fetch all feeds and save new articles
 router.post('/fetch-all', feedController.fetchAllFeeds);
 
+// Reload feeds from environment config
+router.post('/reload', feedController.reloadFeeds);
+
 export default router;

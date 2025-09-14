@@ -188,6 +188,45 @@ export class FeedController {
   }
 
   /**
+   * Reload feeds from environment config
+   */
+  async reloadFeeds(req: Request, res: Response) {
+    try {
+      // Re-read environment variables
+      delete require.cache[require.resolve('../config/env.config')];
+      const { config } = require('../config/env.config');
+      
+      if (config.rssFeeds.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'No RSS feeds configured in environment',
+        });
+      }
+
+      // Initialize new feed sources
+      await rssService.initializeFeedSources(config.rssFeeds);
+      
+      // Fetch articles from all feeds
+      await rssService.checkAllFeeds();
+
+      res.json({
+        success: true,
+        message: `Reloaded ${config.rssFeeds.length} RSS feeds from environment`,
+        data: {
+          feedsCount: config.rssFeeds.length,
+          feeds: config.rssFeeds,
+        },
+      });
+    } catch (error) {
+      await logService.error('Failed to reload feeds', { error });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to reload feeds from environment',
+      });
+    }
+  }
+
+  /**
    * Fetch all feeds and save new articles
    */
   async fetchAllFeeds(req: Request, res: Response) {
