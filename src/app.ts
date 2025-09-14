@@ -6,6 +6,7 @@ import { errorHandler } from './middlewares/error.middleware';
 import articleRoutes from './routes/article.route';
 import feedRoutes from './routes/feed.route';
 import geminiRoutes from './routes/gemini.route';
+import analyticsRoutes from './routes/analytics.route';
 import { cronService } from './services/cron.service';
 import { rssService } from './services/rss.service';
 import { logService } from './services/log.service';
@@ -40,6 +41,7 @@ app.get('/health', (req, res) => {
 app.use('/api/articles', articleRoutes);
 app.use('/api/feeds', feedRoutes);
 app.use('/api/gemini', geminiRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Error handler (must be last)
 app.use(errorHandler);

@@ -95,3 +95,31 @@ model SystemLog {
   @@index([type])
   @@index([createdAt])
 }
+
+// Word Frequency Analysis
+model WordFrequency {
+  id          String   @id @default(cuid())
+  words       Json     // Array of {word: string, count: number}
+  articleIds  Json     // Array of article IDs analyzed (stored as JSON)
+  articleCount Int     // Number of articles analyzed
+  createdAt   DateTime @default(now())
+  
+  @@index([createdAt])
+}
+
+// AI Generated Reports
+model Report {
+  id           String   @id @default(cuid())
+  type         String   // 'daily', 'weekly', 'monthly'
+  startDate    DateTime
+  endDate      DateTime
+  articleCount Int
+  articleIds   Json     // Array of article IDs used (stored as JSON)
+  summary      String   // AI generated summary
+  analysis     Json     // Detailed analysis data
+  wordCloud    Json?    // Word frequency data for this period
+  createdAt    DateTime @default(now())
+  
+  @@index([type, startDate])
+  @@index([createdAt])
+}
