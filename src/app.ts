@@ -19,7 +19,7 @@ validateEnv();
 
 // Middlewares
 app.use(cors({
-  origin: '*', // Allow all origins for testing
+  origin: ['https://news-ai-fe.vercel.app'], // Allow all origins for testing
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning']
@@ -29,7 +29,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({
     success: true,
     message: 'News AI Backend is running',
