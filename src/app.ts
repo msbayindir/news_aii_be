@@ -7,6 +7,8 @@ import articleRoutes from './routes/article.route';
 import feedRoutes from './routes/feed.route';
 import geminiRoutes from './routes/gemini.route';
 import analyticsRoutes from './routes/analytics.route';
+import authRoutes from './routes/auth.route';
+import { authenticateToken } from './middlewares/auth.middleware';
 import { cronService } from './services/cron.service';
 import { rssService } from './services/rss.service';
 import { logService } from './services/log.service';
@@ -19,7 +21,7 @@ validateEnv();
 
 // Middlewares
 app.use(cors({
-  origin: ['https://news-ai-fe.vercel.app'], // Allow all origins for testing
+  origin: ['https://news-ai-fe.vercel.app',"http://localhost:3000"], // Allow all origins for testing
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning']
@@ -38,10 +40,11 @@ app.get('/health', (_req, res) => {
 });
 
 // API Routes
-app.use('/api/articles', articleRoutes);
-app.use('/api/feeds', feedRoutes);
-app.use('/api/gemini', geminiRoutes);
-app.use('/api/analytics', analyticsRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/articles', authenticateToken, articleRoutes);
+app.use('/api/feeds', authenticateToken, feedRoutes);
+app.use('/api/gemini', authenticateToken, geminiRoutes);
+app.use('/api/analytics', authenticateToken, analyticsRoutes);
 
 // Error handler (must be last)
 app.use(errorHandler);

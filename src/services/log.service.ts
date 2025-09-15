@@ -3,17 +3,16 @@ import prisma from '../config/database.config';
 class LogService {
   async info(message: string, metadata?: any): Promise<void> {
     console.log(`[INFO] ${message}`, metadata || '');
-    await this.saveLog('info', message, metadata);
   }
 
   async error(message: string, metadata?: any): Promise<void> {
     console.error(`[ERROR] ${message}`, metadata || '');
-    await this.saveLog('error', message, metadata);
+
   }
 
   async warn(message: string, metadata?: any): Promise<void> {
     console.warn(`[WARN] ${message}`, metadata || '');
-    await this.saveLog('warning', message, metadata);
+
   }
 
   private async saveLog(type: string, message: string, metadata?: any): Promise<void> {

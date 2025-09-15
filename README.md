@@ -36,6 +36,8 @@ PORT=3000
 NODE_ENV=development
 DATABASE_URL="file:./dev.db"
 GEMINI_API_KEY=your_gemini_api_key_here
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+JWT_EXPIRES_IN=7d
 RSS_FEEDS=https://www.hurriyet.com.tr/rss/anasayfa,https://www.milliyet.com.tr/rss/rssnew/gundemrss.xml
 FEED_CHECK_INTERVAL=15
 ```
@@ -45,12 +47,95 @@ FEED_CHECK_INTERVAL=15
 pnpm prisma migrate dev
 ```
 
-5. Uygulamayı başlatın:
+5. Kimlik doğrulama sistemini kurun:
+```bash
+pnpm setup:auth
+```
+
+6. Uygulamayı başlatın:
 ```bash
 pnpm dev
 ```
 
-## 📚 API Endpoints
+## API Endpoints
+
+> **Not:** Tüm API endpoint'leri (auth hariç) kimlik doğrulama gerektirir. Authorization header'ında `Bearer {token}` formatında JWT token göndermelisiniz.
+
+### User
+- Kullanıcı bilgileri ve kimlik doğrulama
+- Kullanıcı adı, şifre (hash'li), rol
+
+### Kimlik Doğrulama (Authentication)
+
+#### POST /api/auth/register
+Yeni kullanıcı kaydı
+
+**Body:**
+```json
+{
+  "username": "kullanici_adi",
+  "password": "sifre123",
+  "role": "viewer" // admin, editor, viewer
+}
+```
+
+#### POST /api/auth/login
+Kullanıcı girişi
+
+**Body:**
+```json
+{
+  "username": "kullanici_adi",
+  "password": "sifre123"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "token": "jwt_token_here",
+    "user": {
+      "id": "user_id",
+      "username": "kullanici_adi",
+      "role": "viewer"
+    }
+  }
+}
+```
+
+#### GET /api/auth/profile
+Kullanıcı profili ve rol bazlı izinleri getirir
+
+**Headers:**
+```
+Authorization: Bearer {jwt_token}
+```
+
+#### GET /api/auth/verify
+Token doğrulama
+
+**Headers:**
+```
+Authorization: Bearer {jwt_token}
+```
+
+#### PUT /api/auth/users/:userId/role
+Kullanıcı rolü güncelleme (sadece admin)
+
+**Headers:**
+```
+Authorization: Bearer {jwt_token}
+```
+
+**Body:**
+```json
+{
+  "role": "editor"
+}
+```
 
 ### Haberler (Articles)
 

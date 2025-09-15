@@ -1,5 +1,4 @@
 import prisma from '../config/database.config';
-import { logService } from './log.service';
 
 class ArticleService {
   /**

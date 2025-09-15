@@ -2,10 +2,6 @@ import prisma from '../config/database.config';
 import { geminiService } from './gemini.service';
 import { logService } from './log.service';
 
-interface WordCount {
-  word: string;
-  count: number;
-}
 
 class AnalyticsService {
   /**
