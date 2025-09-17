@@ -7,47 +7,47 @@ async function setupAuth() {
     console.log('🔧 Setting up authentication system...');
 
     // Check if admin user already exists
-    const existingAdmin = await prisma.user.findFirst({
-      where: { role: 'admin' }
-    });
+    // const existingAdmin = await prisma.user.findFirst({
+    //   where: { role: 'admin' }
+    // });
 
-    if (existingAdmin) {
-      console.log('✅ Admin user already exists:', existingAdmin.username);
-      return;
-    }
+    // if (existingAdmin) {
+    //   console.log('✅ Admin user already exists:', existingAdmin.username);
+    //   return;
+    // }
 
     // Create default admin user
     const adminUser = await authService.createUser({
-      username: 'admin',
-      password: 'admin123',
-      role: 'admin'
+      username: 'test',
+      password: 'test123',
+      role: 'test'
     });
 
     console.log('✅ Admin user created successfully:', adminUser.username);
     console.log('📝 Default credentials:');
-    console.log('   Username: admin');
-    console.log('   Password: admin123');
+    console.log('   Username: test');
+    console.log('   Password: test123');
     console.log('⚠️  Please change the default password after first login!');
 
-    // Create a sample editor user
-    const editorUser = await authService.createUser({
-      username: 'editor',
-      password: 'editor123',
-      role: 'editor'
-    });
+    // // Create a sample editor user
+    // // const editorUser = await authService.createUser({
+    // //   username: 'editor',
+    // //   password: 'editor123',
+    // //   role: 'editor'
+    // // });
 
-    console.log('✅ Editor user created successfully:', editorUser.username);
+    // console.log('✅ Editor user created successfully:', editorUser.username);
 
-    // Create a sample viewer user
-    const viewerUser = await authService.createUser({
-      username: 'viewer',
-      password: 'viewer123',
-      role: 'viewer'
-    });
+    // // Create a sample viewer user
+    // const viewerUser = await authService.createUser({
+    //   username: 'viewer',
+    //   password: 'viewer123',
+    //   role: 'viewer'
+    // });
 
-    console.log('✅ Viewer user created successfully:', viewerUser.username);
+    // console.log('✅ Viewer user created successfully:', viewerUser.username);
 
-    await logService.info('Authentication system setup completed');
+    // await logService.info('Authentication system setup completed');
     console.log('🎉 Authentication system setup completed!');
 
   } catch (error) {
