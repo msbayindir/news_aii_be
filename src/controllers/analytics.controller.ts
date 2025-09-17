@@ -53,6 +53,15 @@ class AnalyticsController {
   async generateReport(req: Request, res: Response): Promise<void> {
     try {
       const { type, date } = req.body;
+      const userId = req.user?.userId;
+      
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          error: 'User not authenticated',
+        });
+        return;
+      }
       
       if (!['daily', 'weekly', 'monthly'].includes(type)) {
         res.status(400).json({
@@ -63,9 +72,9 @@ class AnalyticsController {
       }
       
       const reportDate = date ? new Date(date) : new Date();
-      await analyticsService.generateReport(type, reportDate);
+      await analyticsService.generateReport(type, reportDate, userId);
       
-      const report = await analyticsService.getLatestReport(type);
+      const report = await analyticsService.getLatestReport(type, userId);
       
       res.json({
         success: true,
@@ -86,6 +95,15 @@ class AnalyticsController {
   async getLatestReport(req: Request, res: Response): Promise<void> {
     try {
       const { type } = req.query;
+      const userId = req.user?.userId;
+      
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          error: 'User not authenticated',
+        });
+        return;
+      }
       
       if (!type || !['daily', 'weekly', 'monthly'].includes(type as string)) {
         res.status(400).json({
@@ -95,7 +113,7 @@ class AnalyticsController {
         return;
       }
       
-      const report = await analyticsService.getLatestReport(type as 'daily' | 'weekly' | 'monthly');
+      const report = await analyticsService.getLatestReport(type as 'daily' | 'weekly' | 'monthly', userId);
       
       res.json({
         success: true,
@@ -116,6 +134,15 @@ class AnalyticsController {
   async getReportHistory(req: Request, res: Response): Promise<void> {
     try {
       const { type, limit = 10 } = req.query;
+      const userId = req.user?.userId;
+      
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          error: 'User not authenticated',
+        });
+        return;
+      }
       
       if (!type || !['daily', 'weekly', 'monthly'].includes(type as string)) {
         res.status(400).json({
@@ -127,7 +154,8 @@ class AnalyticsController {
       
       const reports = await analyticsService.getReportHistory(
         type as 'daily' | 'weekly' | 'monthly',
-        Number(limit)
+        Number(limit),
+        userId
       );
       
       res.json({
@@ -149,8 +177,17 @@ class AnalyticsController {
   async getReportById(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
+      const userId = req.user?.userId;
       
-      const report = await analyticsService.getReportById(id);
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          error: 'User not authenticated',
+        });
+        return;
+      }
+      
+      const report = await analyticsService.getReportById(id, userId);
       
       if (!report) {
         res.status(404).json({

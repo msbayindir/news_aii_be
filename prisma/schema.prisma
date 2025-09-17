@@ -16,6 +16,7 @@ model User {
   username  String   @unique
   password  String   // Hashed password
   role      String   // Role as string (e.g., "admin", "editor", "viewer")
+  reports   Report[] // User's reports
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -128,8 +129,11 @@ model Report {
   summary      String   // AI generated summary
   analysis     Json     // Detailed analysis data
   wordCloud    Json?    // Word frequency data for this period
+  userId       String   // User who created the report
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
   
   @@index([type, startDate])
   @@index([createdAt])
+  @@index([userId])
 }

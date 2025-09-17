@@ -125,7 +125,7 @@ class AnalyticsService {
   /**
    * Generate AI report for a specific period
    */
-  async generateReport(type: 'daily' | 'weekly' | 'monthly', date?: Date): Promise<void> {
+  async generateReport(type: 'daily' | 'weekly' | 'monthly', date?: Date, userId?: string): Promise<void> {
     try {
       const targetDate = date || new Date();
       let startDate: Date;
@@ -266,6 +266,7 @@ class AnalyticsService {
               end: endDate.toISOString()
             }
           } as any,
+          userId: userId || 'system', // Default to system if no user provided
         },
       });
 
@@ -279,9 +280,12 @@ class AnalyticsService {
   /**
    * Get latest report by type
    */
-  async getLatestReport(type: 'daily' | 'weekly' | 'monthly') {
+  async getLatestReport(type: 'daily' | 'weekly' | 'monthly', userId?: string) {
     const report = await prisma.report.findFirst({
-      where: { type },
+      where: { 
+        type,
+        ...(userId && { userId })
+      },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -291,9 +295,12 @@ class AnalyticsService {
   /**
    * Get report history
    */
-  async getReportHistory(type: 'daily' | 'weekly' | 'monthly', limit: number = 10) {
+  async getReportHistory(type: 'daily' | 'weekly' | 'monthly', limit: number = 10, userId?: string) {
     const reports = await prisma.report.findMany({
-      where: { type },
+      where: { 
+        type,
+        ...(userId && { userId })
+      },
       orderBy: { createdAt: 'desc' },
       take: limit,
       select: {
@@ -312,9 +319,12 @@ class AnalyticsService {
   /**
    * Get specific report by ID
    */
-  async getReportById(id: string) {
+  async getReportById(id: string, userId?: string) {
     const report = await prisma.report.findUnique({
-      where: { id },
+      where: { 
+        id,
+        ...(userId && { userId })
+      },
     });
 
     return report;
