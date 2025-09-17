@@ -239,7 +239,7 @@ class AnalyticsService {
           "positive": 10,
           "negative": 5,
           "nötr": 7
-        } olarak dön ayrıca başlık halinde raporda sunma sadece veriyi dön.
+        } olarak dön.
         
         Raporu Türkçe olarak, profesyonel ve anlaşılır bir dille hazırla.
         

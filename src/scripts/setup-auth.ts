@@ -18,9 +18,14 @@ async function setupAuth() {
 
     // Create default admin user
     const adminUser = await authService.createUser({
-      username: 'test',
-      password: 'test123',
-      role: 'test'
+      username: 'sehitkamil',
+      password: 'sehitkamil2727',
+      role: 'user'
+    });
+    const adminUser1 = await authService.createUser({
+      username: 'gaziantep',
+      password: 'gaziantep2727',
+      role: 'user'
     });
 
     console.log('✅ Admin user created successfully:', adminUser.username);

@@ -21,7 +21,7 @@ validateEnv();
 
 // Middlewares
 app.use(cors({
-  origin: ['https://news-ai-fe.vercel.app',"http://localhost:3000"], // Allow all origins for testing
+  origin: ['https://news-ai-fe.vercel.app',"http://localhost:3000","https://www.yerelhaberbulteni.com","https://sehitkamil.yerelhaberbulteni.com","https://gaziantep.yerelhaberbulteni.com"], // Allow all origins for testing
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning']
