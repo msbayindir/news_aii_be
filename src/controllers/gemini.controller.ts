@@ -66,7 +66,7 @@ export class GeminiController {
       console.log('Starting web search with query:', query);
       const result = await geminiService.searchWeb(query);
       
-      res.json({ 
+      return res.json({ 
         success: true, 
         data: {
           text: result.text,
@@ -79,7 +79,7 @@ export class GeminiController {
     } catch (error) {
       console.error('Controller error:', error);
       await logService.error('Failed to search web', { error, query: req.body.query });
-      res.status(500).json({ 
+      return res.status(500).json({ 
         success: false, 
         error: 'Failed to search web' 
       });

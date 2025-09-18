@@ -22,7 +22,7 @@ async function setupAuth() {
       password: 'sehitkamil2727',
       role: 'user'
     });
-    const adminUser1 = await authService.createUser({
+    await authService.createUser({
       username: 'gaziantep',
       password: 'gaziantep2727',
       role: 'user'

@@ -63,13 +63,13 @@ export class ArticleController {
         });
       }
 
-      res.json({
+      return res.json({
         success: true,
         data: article,
       });
     } catch (error) {
       await logService.error('Failed to get article', { error });
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: 'Failed to get article',
       });
@@ -137,13 +137,13 @@ export class ArticleController {
         parseInt(limit as string)
       );
 
-      res.json({
+      return res.json({
         success: true,
         data: articles,
       });
     } catch (error) {
       await logService.error('Failed to search articles', { error });
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: 'Failed to search articles',
       });
@@ -153,7 +153,7 @@ export class ArticleController {
   /**
    * Get statistics
    */
-  async getStatistics(req: Request, res: Response) {
+  async getStatistics(_req: Request, res: Response) {
     try {
       const stats = await articleService.getStatistics();
 

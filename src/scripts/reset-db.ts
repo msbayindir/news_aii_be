@@ -1,6 +1,5 @@
 import prisma from '../config/database.config';
 import { categoryService } from '../services/category.service';
-import { logService } from '../services/log.service';
 
 async function resetDatabase() {
   try {

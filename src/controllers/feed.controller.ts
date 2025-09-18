@@ -7,7 +7,7 @@ export class FeedController {
   /**
    * Get all feed sources
    */
-  async getFeedSources(req: Request, res: Response) {
+  async getFeedSources(_req: Request, res: Response) {
     try {
       const sources = await prisma.feedSource.findMany({
         include: {
@@ -66,13 +66,13 @@ export class FeedController {
       // Fetch articles immediately
       await rssService.fetchAndSaveArticles(source.id, source.url);
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         data: source,
       });
     } catch (error) {
       await logService.error('Failed to add feed source', { error });
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: 'Failed to add feed source',
       });
@@ -136,7 +136,7 @@ export class FeedController {
   /**
    * Manually trigger feed check
    */
-  async checkFeeds(req: Request, res: Response) {
+  async checkFeeds(_req: Request, res: Response) {
     try {
       await rssService.checkAllFeeds();
 
@@ -173,14 +173,14 @@ export class FeedController {
 
       const count = await rssService.fetchAndSaveArticles(source.id, source.url);
 
-      res.json({
+      return res.json({
         success: true,
         message: `Fetched ${count} new articles`,
         data: { newArticles: count },
       });
     } catch (error) {
       await logService.error('Failed to check single feed', { error });
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: 'Failed to check feed',
       });
@@ -190,7 +190,7 @@ export class FeedController {
   /**
    * Reload feeds from environment config
    */
-  async reloadFeeds(req: Request, res: Response) {
+  async reloadFeeds(_req: Request, res: Response) {
     try {
       // Re-read environment variables
       delete require.cache[require.resolve('../config/env.config')];
@@ -209,7 +209,7 @@ export class FeedController {
       // Fetch articles from all feeds
       await rssService.checkAllFeeds();
 
-      res.json({
+      return res.json({
         success: true,
         message: `Reloaded ${config.rssFeeds.length} RSS feeds from environment`,
         data: {
@@ -219,7 +219,7 @@ export class FeedController {
       });
     } catch (error) {
       await logService.error('Failed to reload feeds', { error });
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: 'Failed to reload feeds from environment',
       });
@@ -229,7 +229,7 @@ export class FeedController {
   /**
    * Fetch all feeds and save new articles
    */
-  async fetchAllFeeds(req: Request, res: Response) {
+  async fetchAllFeeds(_req: Request, res: Response) {
     try {
       const sources = await prisma.feedSource.findMany({
         where: { isActive: true },
