@@ -149,7 +149,7 @@ class CategoryService {
     for (const [, categories] of grouped.entries()) {
       if (categories.length > 1) {
         // Sort by article count (keep the one with most articles)
-        categories.sort((a, b) => b._count.articles - a._count.articles);
+        categories.sort((a: any, b: any) => b._count.articles - a._count.articles);
         
         const keepCategory = categories[0];
         const duplicates = categories.slice(1);

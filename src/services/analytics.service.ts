@@ -27,7 +27,7 @@ class AnalyticsService {
 
       // Prepare article content for Gemini
       const articleTexts = articles
-        .map(a => `${a.title}\n${a.content || ''}`)
+        .map((a: any) => `${a.title}\n${a.content || ''}`)
         .join('\n\n---\n\n');
 
       // Create prompt for Gemini to analyze word frequency
@@ -99,7 +99,7 @@ class AnalyticsService {
       await prisma.wordFrequency.create({
         data: {
           words: validWords as any,
-          articleIds: articles.map(a => a.id) as any,
+          articleIds: articles.map((a: any) => a.id) as any,
           articleCount: articles.length,
         },
       });
@@ -220,7 +220,7 @@ class AnalyticsService {
 
       // Prepare all article content for AI
       const articleContent = articles
-        .map(a => `Başlık: ${a.title}\nİçerik: ${a.content || ''}\nKaynak: ${a.source.name}\nTarih: ${a.pubDate ? a.pubDate.toLocaleDateString('tr-TR') : 'Tarih belirtilmemiş'}\n`)
+        .map((a: any) => `Başlık: ${a.title}\nİçerik: ${a.content || ''}\nKaynak: ${a.source.name}\nTarih: ${a.pubDate ? a.pubDate.toLocaleDateString('tr-TR') : 'Tarih belirtilmemiş'}\n`)
         .join('\n---\n\n');
 
       // Create comprehensive prompt for AI report generation
@@ -257,7 +257,7 @@ class AnalyticsService {
           startDate,
           endDate,
           articleCount: articles.length,
-          articleIds: articles.map(a => a.id) as any,
+          articleIds: articles.map((a: any) => a.id) as any,
           summary: aiReport,
           analysis: {
             totalArticles: articles.length,

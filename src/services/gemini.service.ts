@@ -74,12 +74,12 @@ class GeminiService {
       }
 
       // Prepare articles text for summarization
-      const articlesText = articles.map(article => {
+      const articlesText = articles.map((article: any) => {
         return `
 Başlık: ${article.title}
 Kaynak: ${article.source.name}
 Tarih: ${article.pubDate?.toLocaleString('tr-TR')}
-Kategoriler: ${article.categories.map(c => c.name).join(', ')}
+Kategoriler: ${article.categories.map((c: any) => c.name).join(', ')}
 İçerik: ${article.description || article.content || 'İçerik yok'}
 ---`;
       }).join('\n');
@@ -102,7 +102,7 @@ Kategoriler: ${article.categories.map(c => c.name).join(', ')}
           endDate,
           prompt: customPrompt,
           articles: {
-            connect: articles.map(a => ({ id: a.id })),
+            connect: articles.map((a: any) => ({ id: a.id })),
           },
         },
       });
