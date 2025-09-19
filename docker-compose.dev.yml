@@ -7,7 +7,7 @@ services:
     container_name: news_ai_backend_dev
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "8010:3000"
       - "5555:5555" # Prisma Studio port
 
     environment:
