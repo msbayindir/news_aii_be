@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  # Development version with SQLite
+  app-dev:
+    build: .
+    container_name: news_ai_backend_dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "5555:5555" # Prisma Studio port
+
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=file:./dev.db
+      - PORT=3000
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - JWT_SECRET=${JWT_SECRET:-dev-jwt-secret-key}
+      - RSS_FEEDS=${RSS_FEEDS}
+      - FEED_CHECK_INTERVAL=${FEED_CHECK_INTERVAL:-15}
+    volumes:
+      - ./src:/app/src
+      - ./logs:/app/logs
+      - ./prisma:/app/prisma
+    networks:
+      - news_ai_network
+    command: sh -c "pnpm prisma db push && pnpm start"
+
+networks:
+  news_ai_network:
+    driver: bridge

@@ -1,0 +1,139 @@
+// This is your Prisma schema file for PostgreSQL,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Authentication
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String   // Hashed password
+  role      String   // Role as string (e.g., "admin", "editor", "viewer")
+  reports   Report[] // User's reports
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// RSS Feed Sources
+model FeedSource {
+  id        String   @id @default(cuid())
+  name      String
+  url       String   @unique
+  isActive  Boolean  @default(true)
+  lastCheck DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  articles  Article[]
+}
+
+// News Articles
+model Article {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  content     String?
+  link        String    @unique
+  imageUrl    String?
+  author      String?
+  pubDate     DateTime?
+  guid        String?
+  
+  sourceId    String
+  source      FeedSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  
+  categories  Category[]
+  summaries   Summary[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([sourceId])
+  @@index([pubDate])
+}
+
+// Article Categories
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  articles  Article[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// AI Generated Summaries
+model Summary {
+  id          String   @id @default(cuid())
+  content     String
+  startDate   DateTime
+  endDate     DateTime
+  prompt      String?
+  
+  articles    Article[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([startDate, endDate])
+}
+
+// Search History
+model SearchHistory {
+  id          String   @id @default(cuid())
+  query       String
+  results     String   // JSON string of results
+  resultCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  
+  @@index([createdAt])
+}
+
+// System Logs
+model SystemLog {
+  id        String   @id @default(cuid())
+  type      String   // 'feed_check', 'error', 'info', etc.
+  message   String
+  metadata  String?  // JSON string for additional data
+  createdAt DateTime @default(now())
+  
+  @@index([type])
+  @@index([createdAt])
+}
+
+// Word Frequency Analysis
+model WordFrequency {
+  id          String   @id @default(cuid())
+  words       Json     // Array of {word: string, count: number}
+  articleIds  Json     // Array of article IDs analyzed (stored as JSON)
+  articleCount Int     // Number of articles analyzed
+  createdAt   DateTime @default(now())
+  
+  @@index([createdAt])
+}
+
+// AI Generated Reports
+model Report {
+  id           String   @id @default(cuid())
+  type         String   // 'daily', 'weekly', 'monthly'
+  startDate    DateTime
+  endDate      DateTime
+  articleCount Int
+  articleIds   Json     // Array of article IDs used (stored as JSON)
+  summary      String   // AI generated summary
+  analysis     Json     // Detailed analysis data
+  wordCloud    Json?    // Word frequency data for this period
+  userId       String   // User who created the report
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  
+  @@index([type, startDate])
+  @@index([createdAt])
+  @@index([userId])
+}

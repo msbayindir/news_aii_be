@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: news_ai_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: news_ai_db
+      POSTGRES_USER: news_ai_user
+      POSTGRES_PASSWORD: news_ai_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - news_ai_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U news_ai_user -d news_ai_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # News AI Backend Application
+  app:
+    build: .
+    container_name: news_ai_backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://news_ai_user:news_ai_password@postgres:5432/news_ai_db
+      - PORT=3000
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - RSS_FEEDS=${RSS_FEEDS}
+      - FEED_CHECK_INTERVAL=${FEED_CHECK_INTERVAL:-15}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - news_ai_network
+    volumes:
+      - ./logs:/app/logs
+    command: sh -c "pnpm prisma migrate deploy && pnpm start"
+
+  # Development version with SQLite (optional)
+  app-dev:
+    build: .
+    container_name: news_ai_backend_dev
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=file:./dev.db
+      - PORT=3000
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - RSS_FEEDS=${RSS_FEEDS}
+      - FEED_CHECK_INTERVAL=${FEED_CHECK_INTERVAL:-15}
+    networks:
+      - news_ai_network
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    profiles:
+      - dev
+    command: sh -c "pnpm prisma migrate deploy && pnpm start"
+
+volumes:
+  postgres_data:
+  
+networks:
+  news_ai_network:
+    driver: bridge

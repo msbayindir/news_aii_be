@@ -132,6 +132,7 @@ class CronService {
             },
           },
         });
+        console.log(count);
 
         await logService.info(`Cleaned up ${count} old log entries`);
       } catch (error) {
